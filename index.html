@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Portal Assessment Sandbox</title>
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --danger: #ef4444;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .portal-container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+        .portal-header {
+            background: #090d16;
+            padding: 1.25rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .portal-header h1 {
+            font-size: 1rem;
+            margin: 0;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .timer-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            padding: 0.4rem 0.9rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            letter-spacing: 1px;
+        }
+        .card-body {
+            padding: 2.5rem 2rem;
+        }
+        .question-title {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            font-weight: 600;
+        }
+        .answer-box {
+            width: 100%;
+            height: 150px;
+            background: #090d16;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            padding: 1rem;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .answer-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+        }
+        .portal-footer {
+            padding: 1.25rem 2rem;
+            background: #090d16;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .counter-text {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-family: monospace;
+        }
+        #submit-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.75rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #submit-btn:hover {
+            background: var(--primary-dark);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="portal-container" id="main-card">
+        <div class="portal-header">
+            <h1 id="module-title">Assessment Module: Task 1</h1>
+            <div id="timer" class="timer-badge">03:59</div>
+        </div>
+        
+        <div class="card-body">
+            <h3 class="question-title">Loading question...</h3>
+            <textarea class="answer-box" placeholder="Type your response or let automated assistant inject draft..."></textarea>
+        </div>
+
+        <div class="portal-footer">
+            <span id="progress-indicator" class="counter-text">Question 1 of 8</span>
+            <button id="submit-btn">Submit & Next</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            "Explain how you would implement robust authentication state management and mitigate SQL injection vulnerabilities in a high-traffic Node.js and PostgreSQL backend service.",
+            "Describe the trade-offs between asynchronous event-driven background tasks (like Celery or Python BackgroundTasks) versus synchronous request-response loops in API development.",
+            "How do database indexing strategies (B-Trees vs. Hash indexes) impact query performance and write amplification in relational databases?",
+            "Discuss the architectural patterns used to handle webhook reliability and idempotency when integrating third-party payment gateways like M-Pesa Daraja.",
+            "What mechanisms would you use to prevent race conditions during high-concurrency inventory deductions or balance updates in a transactional system?",
+            "Explain how connection pooling works in database drivers (like pg or psycopg2) and why exhausting a connection pool causes cascading failures.",
+            "Compare monolithic architecture with microservices in terms of data consistency, distributed transaction management (SAGA pattern), and network latency.",
+            "How do you design a robust rate-limiting middleware using Redis token buckets or sliding windows to protect public REST APIs against brute-force attacks?"
+        ];
+
+        let qIndex = 0;
+        let taskIndex = 1;
+        const maxTasks = 5;
+
+        // 4-Minute Timer Logic (240 seconds per question)
+        let timeLeft = 240; 
+        let timerInterval = null;
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 240; // Reset to 4 minutes
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    clearInterval(timerInterval);
+                }
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const timerEl = document.getElementById('timer');
+            if (timerEl) {
+                timerEl.textContent = formatted;
+            }
+        }
+
+        function updateView() {
+            if (taskIndex > maxTasks) {
+                clearInterval(timerInterval);
+                document.getElementById('main-card').innerHTML = `
+                    <div class="portal-header"><h1>Simulation Complete</h1></div>
+                    <div class="card-body" style="text-align: center; padding: 3.5rem;">
+                        <h2 style="color: #38bdf8; margin-bottom: 1rem;">🎉 All 5 Tasks & 40 Questions Completed!</h2>
+                        <p style="color: var(--text-muted); font-size: 1.1rem;">The browser-terminal bridge and 4-minute timer simulation executed cleanly.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            document.getElementById('question-title').textContent = questions[qIndex];
+            document.getElementById('progress-indicator').textContent = `Question ${qIndex + 1} of ${questions.length}`;
+            document.getElementById('module-title').textContent = `Assessment Module: Task ${taskIndex}`;
+            document.querySelector('.answer-box').value = "";
+            
+            // Start the 4-minute countdown for this question
+            startTimer();
+        }
+
+        // Ensure proper target element IDs
+        document.querySelector('.question-title').id = 'question-title';
+        updateView();
+
+        // Handle button click / submission
+        const btn = document.getElementById('submit-btn');
+        btn.addEventListener('click', () => {
+            qIndex++;
+            if (qIndex >= questions.length) {
+                qIndex = 0;
+                taskIndex++;
+            }
+            updateView();
+        });
+    </script>
+</body>
+</html>
